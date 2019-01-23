@@ -5,7 +5,7 @@ import java.sql.DriverManager;
 import java.sql.Statement;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import org.postgresql.*;
+//import org.postgresql.*;
 
 
 
@@ -19,10 +19,10 @@ public class PgSQlWriter {
     public static Connection connect() throws SQLException {
         return DriverManager.getConnection(conn_string, conn_user, conn_pass);
     }
-    public static void initTable(){
-        String sql = "CREATE TABLE IF NOT EXISTS archive (eventdate text,feeder1 text,feeder2 text,temp  text,prediction int)";
+    public static void initTable(String dest){
+        String sql = "CREATE TABLE IF NOT EXISTS "+dest+"(eventdate text,feeder1 text,feeder2 text,temp  text,prediction int)";
         try (Connection conn=connect();
-        Statement stmt = conn.prepareStatement(sql)) {
+        Statement stmt = conn.createStatement()) {
         stmt.execute(sql);
         stmt.close();
         conn.close();
@@ -30,9 +30,9 @@ public class PgSQlWriter {
     e.printStackTrace();
 }
     }
-    public static int updatePrediction(int val) {
+    public static int updatePrediction(String dest,int val) {
         Integer update_value = 2*val;
-        String sql = "UPDATE archive SET prediction=? WHERE (SELECT row_number() over () from archive LIMIT 1)=?";
+        String sql = "UPDATE "+dest+" SET prediction=? WHERE (SELECT row_number() over () from archive LIMIT 1)=?";
         try (Connection conn=connect();
             PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, 2*val);
@@ -43,16 +43,16 @@ public class PgSQlWriter {
     }
     return update_value;
 }
-    public static void main(String timestamp,String feeder1, String feeder2, String temp) throws IOException {
+    public static void main(String dest,String timestamp,String feeder1, String feeder2, String temp) throws IOException {
         try {
         Class.forName("org.postgresql.Driver");
         conn = connect();
-            PreparedStatement ps = conn.prepareStatement("INSERT INTO archive (eventdate,feeder1,feeder2,temp,prediction) VALUES (?,?,?,?,?)");
+            PreparedStatement ps = conn.prepareStatement("INSERT INTO "+dest+"(eventdate,feeder1,feeder2,temp,prediction) VALUES (?,?,?,?,?)");
                               ps.setString(1,timestamp);
                               ps.setString(2, feeder1);
                               ps.setString(3, feeder2);
                               ps.setString(4, temp);
-                              ps.setInt(5,updatePrediction(rand.nextInt(1000)+1));
+                              ps.setInt(5,updatePrediction(dest,rand.nextInt(1000)+1));
             ps.execute();
 } catch (SQLException e) {
     e.printStackTrace();
